@@ -16,17 +16,16 @@ type alias Model =
   }
 
 type alias Train =
-  { trainNumber: Int,
-  departureDate: String
-  --timeTableRows: List TimeTableRow
+  { trainNumber: Int
+  , departureDate: String
+  , timeTableRows: List TimeTableRow
   }
 
---type alias TimeTableRow =
---  {
---      stationShortCode: String,
---      type: String,
---      scheduledTime: String
---  }
+type alias TimeTableRow =
+  { stationShortCode: String
+  , rowType: String
+  , scheduledTime: String
+  }
 
 exampleTrainJsonString : String
 exampleTrainJsonString = "{  \"trainNumber\": 1,  \"departureDate\": \"2015-03-01\",  \"operatorUICCode\": 10,  \"operatorShortCode\": \"vr\",  \"trainType\": \"IC\",  \"trainCategory\": \"Long-distance\",  \"runningCurrently\": false,  \"cancelled\": false,  \"version\": 3467158366,  \"timeTableRows\": [    {      \"stationShortCode\": \"HKI\",      \"stationUICCode\": 1,      \"countryCode\": \"FI\",      \"type\": \"DEPARTURE\",      \"trainStopping\": true,      \"commercialStop\": true,      \"commercialTrack\": \"6\",      \"cancelled\": false,      \"scheduledTime\": \"2015-03-01T05:12:00.000Z\"    },    {      \"stationShortCode\": \"PSL\",      \"stationUICCode\": 10,      \"countryCode\": \"FI\",      \"type\": \"ARRIVAL\",      \"trainStopping\": true,      \"commercialStop\": true,      \"commercialTrack\": \"3\",      \"cancelled\": false,      \"scheduledTime\": \"2015-03-01T05:17:00.000Z\"    }]}"
@@ -38,15 +37,27 @@ exampleTrain trainJsonString =
 
 trainDecoder : Decoder Train
 trainDecoder =
-  object2 Train
+  object3 Train
     ("trainNumber" := int)
     ("departureDate" := string)
+    ("timeTableRows" := Json.Decode.list timeTableRowDecoder)
+
+timeTableRowDecoder : Decoder TimeTableRow
+timeTableRowDecoder =
+  object3 TimeTableRow
+    ("stationShortCode" := string)
+    ("type" := string)
+    ("scheduledTime" := string)
 
 exampleTrain2 : Train
 exampleTrain2 =
-  { trainNumber= 0,
-  departureDate = "xx"
+  { trainNumber= 0
+  , departureDate = "xx"
+  , timeTableRows = [exampleTimeTableRow]
   }
+
+exampleTimeTableRow : TimeTableRow
+exampleTimeTableRow = { stationShortCode = "HKI", rowType = "DEPARTURE", scheduledTime = "2015-03-01T05:12:00.000Z" }
 
 init : (Model, Effects Action)
 init = 
@@ -112,6 +123,28 @@ trainInfo train =
   div []
     [ div [] [ text ("TrainNumber: " ++ toString train.trainNumber) ]
     , div [] [ text ("Departure date: " ++ toString train.departureDate) ]
+    , div [] [ text "Time table:", timeTable train.timeTableRows ]
+    ]
+
+timeTable : List TimeTableRow -> Html
+timeTable timeTableRows =
+  table [ style [("textAlign", "left")] ]
+    [ thead []
+        [ tr [] 
+           [ th [] [ text "Station" ]
+           , th [] [ text "Type" ]
+           , th [] [ text "Scheduled" ]
+           ]
+        ]
+    , tbody [] (List.map timeTableRow timeTableRows)
+    ]
+
+timeTableRow : TimeTableRow -> Html
+timeTableRow row =
+  tr []
+    [ td [] [ text row.stationShortCode ]
+    , td [] [ text row.rowType ]
+    , td [] [ text row.scheduledTime ]
     ]
 
 searchBox : Signal.Address Action -> Model -> Html
