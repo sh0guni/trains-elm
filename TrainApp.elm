@@ -10,7 +10,7 @@ import Task
 import String exposing (toInt)
 
 type alias Model = 
-  { train: Train
+  { train: Maybe Train
   , trainNumber: Int
   , departureDate: String
   }
@@ -27,14 +27,6 @@ type alias TimeTableRow =
   , scheduledTime: String
   }
 
-exampleTrainJsonString : String
-exampleTrainJsonString = "{  \"trainNumber\": 1,  \"departureDate\": \"2015-03-01\",  \"operatorUICCode\": 10,  \"operatorShortCode\": \"vr\",  \"trainType\": \"IC\",  \"trainCategory\": \"Long-distance\",  \"runningCurrently\": false,  \"cancelled\": false,  \"version\": 3467158366,  \"timeTableRows\": [    {      \"stationShortCode\": \"HKI\",      \"stationUICCode\": 1,      \"countryCode\": \"FI\",      \"type\": \"DEPARTURE\",      \"trainStopping\": true,      \"commercialStop\": true,      \"commercialTrack\": \"6\",      \"cancelled\": false,      \"scheduledTime\": \"2015-03-01T05:12:00.000Z\"    },    {      \"stationShortCode\": \"PSL\",      \"stationUICCode\": 10,      \"countryCode\": \"FI\",      \"type\": \"ARRIVAL\",      \"trainStopping\": true,      \"commercialStop\": true,      \"commercialTrack\": \"3\",      \"cancelled\": false,      \"scheduledTime\": \"2015-03-01T05:17:00.000Z\"    }]}"
-
-exampleTrain : String -> Train
-exampleTrain trainJsonString =
-  decodeString trainDecoder trainJsonString
-  |> Result.withDefault exampleTrain2
-
 trainDecoder : Decoder Train
 trainDecoder =
   object3 Train
@@ -49,19 +41,16 @@ timeTableRowDecoder =
     ("type" := string)
     ("scheduledTime" := string)
 
-exampleTrain2 : Train
-exampleTrain2 =
-  { trainNumber= 0
-  , departureDate = "xx"
-  , timeTableRows = [exampleTimeTableRow]
+emptyTrain : Train
+emptyTrain =
+  { trainNumber = 0
+  , departureDate = ""
+  , timeTableRows = []
   }
-
-exampleTimeTableRow : TimeTableRow
-exampleTimeTableRow = { stationShortCode = "HKI", rowType = "DEPARTURE", scheduledTime = "2015-03-01T05:12:00.000Z" }
 
 init : (Model, Effects Action)
 init = 
-  ( { train = exampleTrain exampleTrainJsonString
+  ( { train = Nothing
     , trainNumber = 1
     , departureDate = "2015-03-01"
     }
@@ -93,11 +82,9 @@ update action model =
       )
 
     NewTrain maybeTrain ->
-      let newTrain = Maybe.withDefault exampleTrain2 maybeTrain
-      in
-        ( { model | train = newTrain }
-        , Effects.none
-        )
+      ( { model | train = maybeTrain }
+      , Effects.none
+      )
 
 getTrain : Model -> Effects Action
 getTrain model =
@@ -118,13 +105,18 @@ view address model =
   , trainInfo model.train
   ]
 
-trainInfo : Train -> Html
-trainInfo train =
-  div []
-    [ div [] [ text ("TrainNumber: " ++ toString train.trainNumber) ]
-    , div [] [ text ("Departure date: " ++ toString train.departureDate) ]
-    , div [] [ text "Time table:", timeTable train.timeTableRows ]
-    ]
+trainInfo : Maybe Train -> Html
+trainInfo maybeTrain =
+  case maybeTrain of
+    Just train ->
+      div []
+        [ div [] [ text ("TrainNumber: " ++ toString train.trainNumber) ]
+        , div [] [ text ("Departure date: " ++ train.departureDate) ]
+        , div [] [ text "Time table:", timeTable train.timeTableRows ]
+        ]
+
+    Nothing ->
+      div [] [ text "Click Search to see train timetable" ]
 
 timeTable : List TimeTableRow -> Html
 timeTable timeTableRows =
@@ -162,10 +154,10 @@ searchBox address model =
     , div []
       [ text "Departure date: "
         , input
-          [ placeholder (toString model.departureDate)
+          [ placeholder model.departureDate
           , on "input" targetValue
-          (\string -> Signal.message address
-              (DepartureDate string))
+            (\string -> Signal.message address
+                (DepartureDate string))
           ] []
         ]
     , div []
