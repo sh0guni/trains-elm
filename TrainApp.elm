@@ -135,24 +135,21 @@ timeTableRow row =
 searchBox : Signal.Address Action -> Model -> Html
 searchBox address model =
   div []
-    [ div []
-      [ text "Train number: "
-        , input 
-            [ placeholder (toString model.trainNumber)
-            , on "input" targetValue 
-              (\string -> Signal.message address 
-                  (TrainNumber (Result.withDefault 0 (toInt string))))
-            ] []
-        ]
-    , div []
-      [ text "Departure date: "
-        , input
-          [ placeholder model.departureDate
-          , on "input" targetValue
-            (\string -> Signal.message address
-                (DepartureDate string))
-          ] []
-        ]
+    [ inputField address
+        (\string -> TrainNumber (Result.withDefault 0 (toInt string)))
+        "Train number: " (toString model.trainNumber)
+    , inputField address DepartureDate "Departure date: " model.departureDate
     , div []
         [ button [ onClick address Search ] [ text "Search" ]]
       ]
+
+inputField : Signal.Address Action -> (String -> Action) -> String -> String -> Html
+inputField address toAction name placeholderText =
+  div []
+      [ text name
+        , input
+          [ placeholder placeholderText
+          , on "input" targetValue
+            (\string -> Signal.message address (toAction string))
+          ] []
+        ]
