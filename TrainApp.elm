@@ -27,6 +27,12 @@ type alias TimeTableRow =
   , scheduledTime: String
   }
 
+type Action
+  = TrainNumber Int
+  | DepartureDate String
+  | Search
+  | NewTrain (Maybe Train)
+
 trainDecoder : Decoder Train
 trainDecoder =
   object3 Train
@@ -41,13 +47,6 @@ timeTableRowDecoder =
     ("type" := string)
     ("scheduledTime" := string)
 
-emptyTrain : Train
-emptyTrain =
-  { trainNumber = 0
-  , departureDate = ""
-  , timeTableRows = []
-  }
-
 init : (Model, Effects Action)
 init = 
   ( { train = Nothing
@@ -56,12 +55,6 @@ init =
     }
   , Effects.none
   )
-
-type Action
-  = TrainNumber Int
-  | DepartureDate String
-  | Search
-  | NewTrain (Maybe Train)
 
 update : Action -> Model -> (Model, Effects Action)
 update action model =
